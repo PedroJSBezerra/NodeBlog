@@ -9,12 +9,13 @@ require('./models/Postagem')
 const Postagem = mongoose.model('postagens')
 require('./models/Categoria')
 const Categoria = mongoose.model('categorias')
-
 const app = express()
-const port = 8081
 const admin = require('./routes/admin')
 const path= require('path')
-
+const usuarios = require('./routes/usuario')
+const passport = require('passport')
+require('./config/auth')(passport)
+const db = require('./config/db')
 
 //configurações
   //sessão
@@ -23,11 +24,16 @@ const path= require('path')
     resave: true,
     saveUninitialized: true
   }))
+  app.use(passport.initialize())
+  app.use(passport.session())
+
   app.use(flash())
   //middleware
   app.use((req,res,next)=>{
     res.locals.success_msg = req.flash("success_msg")
     res.locals.error_msg = req.flash("error_msg")
+    res.locals.error = req.flash("error")
+    res.locals.user = req.user || null
     next()
   })
   //body-parser
@@ -38,7 +44,7 @@ const path= require('path')
   app.set('view engine', 'handlebars')
   //mongoose
   mongoose.Promise = global.Promise
-  mongoose.connect('mongodb://127.0.0.1/blogapp').then(()=>{
+  mongoose.connect(db.mongoURI).then(()=>{
     console.log("Conectado ao mongo.")
   }).catch((err)=>{
     console.log(err)
@@ -120,5 +126,8 @@ const path= require('path')
   })
 
   app.use('/admin', admin)
+  app.use('/usuarios', usuarios)
 //outros
-app.listen(port, ()=> console.log("Server runing on port: "+port))
+
+const PORT = process.env.PORT || 8081
+app.listen(PORT, ()=> console.log("Server runing on port: "+PORT))
